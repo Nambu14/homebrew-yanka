@@ -1,0 +1,44 @@
+name: Update formula
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version without v prefix (e.g. 0.2.0)
+        required: true
+        type: string
+      sha256:
+        description: SHA256 of yanka-VERSION.tar.gz from the GitHub release
+        required: true
+        type: string
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update formula
+        env:
+          VERSION: ${{ inputs.version }}
+          SHA256: ${{ inputs.sha256 }}
+        run: |
+          formula="Formula/yanka.rb"
+          sed -i "s|url \".*\"|url \"https://github.com/Nambu14/yanka/releases/download/v${VERSION}/yanka-${VERSION}.tar.gz\"|" "$formula"
+          sed -i "s|sha256 \".*\"|sha256 \"${SHA256}\"|" "$formula"
+
+      - name: Commit and push
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula/yanka.rb
+          if git diff --staged --quiet; then
+            echo "Formula already up to date."
+            exit 0
+          fi
+          git commit -m "yanka ${VERSION}"
+          git push
