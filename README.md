@@ -22,10 +22,11 @@ In **Settings → Actions → General → Workflow permissions**, enable **Allow
 ## Update the formula after a release
 
 1. In the [yanka](https://github.com/Nambu14/yanka) repo, run the **Release** workflow and publish the release. The release must include **`yanka-<version>.tar.gz`** as a top-level asset (the workflow uploads it automatically).
-2. Get the sdist SHA256 from the release asset (or run):
+2. Get the sdist SHA256 — **hex only**, no `sha256:` prefix (GitHub’s copy button includes the prefix; strip it):
 
    ```bash
    curl -L "https://github.com/Nambu14/yanka/releases/download/v0.2.0/yanka-0.2.0.tar.gz" | shasum -a 256
+   # use the first field only, e.g. 42248afb... not sha256:42248afb...
    ```
 
 3. In **this** repo, open **Actions → Update formula → Run workflow**.

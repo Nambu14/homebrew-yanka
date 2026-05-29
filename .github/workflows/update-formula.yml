@@ -8,7 +8,7 @@ on:
         required: true
         type: string
       sha256:
-        description: SHA256 of yanka-VERSION.tar.gz from the GitHub release
+        description: Hex SHA256 only (no sha256: prefix) of yanka-VERSION.tar.gz
         required: true
         type: string
 
@@ -29,8 +29,14 @@ jobs:
           SHA256: ${{ inputs.sha256 }}
         run: |
           formula="Formula/yanka.rb"
+          checksum="${SHA256#sha256:}"
+          if ! [[ "$checksum" =~ ^[0-9a-fA-F]{64}$ ]]; then
+            echo "sha256 must be 64 hex characters (no sha256: prefix)"
+            exit 1
+          fi
+          checksum=$(echo "$checksum" | tr '[:upper:]' '[:lower:]')
           sed -i "s|url \".*\"|url \"https://github.com/Nambu14/yanka/releases/download/v${VERSION}/yanka-${VERSION}.tar.gz\"|" "$formula"
-          sed -i "s|sha256 \".*\"|sha256 \"${SHA256}\"|" "$formula"
+          sed -i "s|sha256 \".*\"|sha256 \"${checksum}\"|" "$formula"
 
       - name: Open pull request
         env:
