@@ -17,6 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
 
@@ -29,9 +30,10 @@ jobs:
           sed -i "s|url \".*\"|url \"https://github.com/Nambu14/yanka/releases/download/v${VERSION}/yanka-${VERSION}.tar.gz\"|" "$formula"
           sed -i "s|sha256 \".*\"|sha256 \"${SHA256}\"|" "$formula"
 
-      - name: Commit and push
+      - name: Open pull request
         env:
           VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -40,5 +42,20 @@ jobs:
             echo "Formula already up to date."
             exit 0
           fi
+
+          branch="update-yanka-${VERSION}"
+          git checkout -b "$branch"
           git commit -m "yanka ${VERSION}"
-          git push
+          git push -u origin "$branch" --force-with-lease
+
+          existing=$(gh pr list --head "$branch" --base main --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            echo "Pull request already open: #${existing}"
+            exit 0
+          fi
+
+          gh pr create \
+            --title "yanka ${VERSION}" \
+            --body "Update formula to yanka ${VERSION}." \
+            --base main \
+            --head "$branch"
