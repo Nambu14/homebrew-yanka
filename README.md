@@ -11,7 +11,7 @@ brew install yanka
 
 ## How the tap works
 
-The formula in `Formula/yanka.rb` downloads the **source distribution** (`yanka-<version>.tar.gz`) from [GitHub releases](https://github.com/Nambu14/yanka/releases) in the main yanka repo. Homebrew builds and installs the CLI from that tarball; bottles are not provided yet.
+The formula in `Formula/yanka.rb` downloads the **source distribution** (`yanka-<version>.tar.gz`) from [GitHub releases](https://github.com/Nambu14/yanka/releases) in the main yanka repo. `brew install` places a lightweight launcher in your PATH; on first run, it bootstraps a user-local virtualenv and installs yanka + Python dependencies there (needed for wheel-only deps). Bottles are not provided yet.
 
 After you publish a new release in the main repo, update this tap manually (see below).
 
