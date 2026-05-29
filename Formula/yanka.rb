@@ -1,8 +1,8 @@
 class Yanka < Formula
   desc "Yet ANother Knowledge App — capture engineering decisions from conversation"
   homepage "https://github.com/Nambu14/yanka"
-  url "https://github.com/Nambu14/yanka/releases/download/v0.3.0/yanka-0.3.0.tar.gz"
-  sha256 "42248afbf2336b6a4f8eb382ff9fc04bb937b772840741d16e717a20de5003ef"
+  url "https://github.com/Nambu14/yanka/releases/download/v0.3.2/yanka-0.3.2.tar.gz"
+  sha256 "51b726ab42dd99f8a0b6180a9018d1ac9a0521bb8ab23c3230dc8d21fbc51c88"
   license "Apache-2.0"
 
   depends_on "python@3.12"
