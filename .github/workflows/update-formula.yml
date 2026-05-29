@@ -20,6 +20,8 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Update formula
         env:
@@ -44,18 +46,28 @@ jobs:
           fi
 
           branch="update-yanka-${VERSION}"
-          git checkout -b "$branch"
+          git fetch origin "$branch" 2>/dev/null || true
+          git checkout -B "$branch"
           git commit -m "yanka ${VERSION}"
-          git push -u origin "$branch" --force-with-lease
+          # Disposable automation branch; safe to overwrite on re-run.
+          git push origin "HEAD:${branch}" --force
 
-          existing=$(gh pr list --head "$branch" --base main --json number --jq '.[0].number // empty')
-          if [ -n "$existing" ]; then
-            echo "Pull request already open: #${existing}"
+          existing_url=$(gh pr list --head "$branch" --base main --json url --jq '.[0].url // empty')
+          if [ -n "$existing_url" ]; then
+            echo "Pull request already open: ${existing_url}"
             exit 0
           fi
 
-          gh pr create \
+          pr_url="https://github.com/${{ github.repository }}/compare/main...${branch}?expand=1"
+          if gh pr create \
             --title "yanka ${VERSION}" \
             --body "Update formula to yanka ${VERSION}." \
             --base main \
-            --head "$branch"
+            --head "$branch"; then
+            exit 0
+          fi
+
+          echo "::warning::Could not open a pull request automatically."
+          echo "Enable: Settings → Actions → General → Allow GitHub Actions to create and approve pull requests"
+          echo "Then open manually: ${pr_url}"
+          exit 1
