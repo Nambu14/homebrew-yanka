@@ -4,11 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Release version without v prefix (e.g. 0.2.0)
-        required: true
-        type: string
-      sha256:
-        description: Hex SHA256 only (no sha256: prefix) of yanka-VERSION.tar.gz
+        description: Release version without v prefix (e.g. 0.3.0)
         required: true
         type: string
 
@@ -23,20 +19,36 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Resolve sdist URL and checksum from GitHub release
+        env:
+          VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          asset="yanka-${VERSION}.tar.gz"
+          tag="v${VERSION}"
+          url="https://github.com/Nambu14/yanka/releases/download/${tag}/${asset}"
+
+          if ! gh release view "$tag" --repo Nambu14/yanka --json assets \
+            --jq ".assets[] | select(.name == \"${asset}\") | .name" | grep -qx "$asset"; then
+            echo "Missing release asset ${asset} on Nambu14/yanka ${tag}"
+            exit 1
+          fi
+
+          curl -fsSL "$url" -o "/tmp/${asset}"
+          checksum=$(sha256sum "/tmp/${asset}" | awk '{print $1}')
+
+          echo "SDIST_URL=${url}" >> "$GITHUB_ENV"
+          echo "SDIST_SHA256=${checksum}" >> "$GITHUB_ENV"
+          echo "Resolved ${url}"
+          echo "sha256 ${checksum}"
+
       - name: Update formula
         env:
           VERSION: ${{ inputs.version }}
-          SHA256: ${{ inputs.sha256 }}
         run: |
           formula="Formula/yanka.rb"
-          checksum="${SHA256#sha256:}"
-          if ! [[ "$checksum" =~ ^[0-9a-fA-F]{64}$ ]]; then
-            echo "sha256 must be 64 hex characters (no sha256: prefix)"
-            exit 1
-          fi
-          checksum=$(echo "$checksum" | tr '[:upper:]' '[:lower:]')
-          sed -i "s|url \".*\"|url \"https://github.com/Nambu14/yanka/releases/download/v${VERSION}/yanka-${VERSION}.tar.gz\"|" "$formula"
-          sed -i "s|sha256 \".*\"|sha256 \"${checksum}\"|" "$formula"
+          sed -i "s|url \".*\"|url \"${SDIST_URL}\"|" "$formula"
+          sed -i "s|sha256 \".*\"|sha256 \"${SDIST_SHA256}\"|" "$formula"
 
       - name: Open pull request
         env:
@@ -55,7 +67,6 @@ jobs:
           git fetch origin "$branch" 2>/dev/null || true
           git checkout -B "$branch"
           git commit -m "yanka ${VERSION}"
-          # Disposable automation branch; safe to overwrite on re-run.
           git push origin "HEAD:${branch}" --force
 
           existing_url=$(gh pr list --head "$branch" --base main --json url --jq '.[0].url // empty')
@@ -65,9 +76,16 @@ jobs:
           fi
 
           pr_url="https://github.com/${{ github.repository }}/compare/main...${branch}?expand=1"
+          body=$(cat <<EOF
+          Update formula to yanka ${VERSION}.
+
+          - url: \`${SDIST_URL}\`
+          - sha256: \`${SDIST_SHA256}\`
+          EOF
+          )
           if gh pr create \
             --title "yanka ${VERSION}" \
-            --body "Update formula to yanka ${VERSION}." \
+            --body "$body" \
             --base main \
             --head "$branch"; then
             exit 0
