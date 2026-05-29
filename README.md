@@ -26,7 +26,7 @@ After you publish a new release in the main repo, update this tap manually (see 
 
 3. In **this** repo, open **Actions → Update formula → Run workflow**.
 4. Enter the version (no `v` prefix, e.g. `0.2.0`) and the sdist `sha256`.
-5. The workflow updates `Formula/yanka.rb`, commits, and pushes to `main`.
+5. The workflow opens a pull request with the updated `Formula/yanka.rb`. Merge it (branch protection requires a PR).
 
 You can then install or upgrade locally:
 
